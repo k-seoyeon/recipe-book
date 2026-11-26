@@ -218,7 +218,7 @@
   function track(name, params){
     params = params || {};
     params.recipe_count = recipes.length;
-    try { gtag("event", name, params); } catch(e){}
+    if (!window.IS_ME) { try { gtag("event", name, params); } catch(e){} }
     if (window.console) console.log("[track]", name, params);
   }
   try { gtag("set", "user_properties", { local_user: uid() }); } catch(e){}
@@ -487,6 +487,21 @@
   });
   window.addEventListener("appinstalled", function(){ track("app_installed", {}); });
   if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch(e){} }
+
+  // 만든 사람 기기 제외: 맨 위 제목을 5번 연속 누르면 켜고/끄기 (홈 화면 앱처럼 주소를 못 바꾸는 곳에서도 되게)
+  var meTaps = 0, meTimer = null;
+  $("title").addEventListener("click", function(){
+    meTaps++; clearTimeout(meTimer); meTimer = setTimeout(function(){ meTaps = 0; }, 1500);
+    if (meTaps < 5) return;
+    meTaps = 0;
+    var on = !window.IS_ME;
+    try { if (on) localStorage.setItem("recipebook.flag.me","1"); else localStorage.removeItem("recipebook.flag.me"); } catch(e){}
+    window.IS_ME = on;
+    window["ga-disable-" + window.GA_ID] = on;
+    var sub = $("subtitle"), prev = sub.textContent;
+    sub.textContent = on ? "이 기기는 이제 기록에서 빠져요" : "이 기기도 다시 기록돼요";
+    setTimeout(function(){ sub.textContent = prev; }, 3000);
+  });
 
   var qs = new URLSearchParams(location.search);
   var sharedUrl = firstUrl(qs.get("url")) || firstUrl(qs.get("text"));

@@ -1,5 +1,5 @@
 // 홈 화면 추가를 위한 최소 서비스 워커: 항상 네트워크 먼저, 오프라인일 때만 저장본
-const CACHE = "recipebook-v3";
+const CACHE = "recipebook-v4";
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"])));
   self.skipWaiting();
