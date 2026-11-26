@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오늘 뭐 먹지 · 내 레시피북</title>
+<meta name="theme-color" content="#ffffff">
+<!--
+  GA4 설정: 아래 GA_ID를 GA4 '측정 ID'(G-로 시작)로 바꾸면 이벤트가 쌓여요.
+  바꾸기 전에는 GA4를 불러오지 않고, 이벤트는 개발자 콘솔에만 찍혀요.
+-->
+<script>
+  window.GA_ID = "G-7R4B2F8XKK";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  if (/^G-[A-Z0-9]{6,}$/.test(window.GA_ID) && window.GA_ID !== "G-XXXXXXXXXX") {
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtag/js?id=" + window.GA_ID;
+    document.head.appendChild(s);
+    gtag("js", new Date());
+    gtag("config", window.GA_ID);
+  }
+</script>
+<style>
+  :root{
+    --bg:#f7f7f5; --card:#fff; --ink:#16181b; --sub:#5f646b; --faint:#9aa0a6;
+    --line:#e6e7e9; --accent:#2a55e5; --accent-weak:#eaf0ff; --ok:#1f8a4c;
+    --r:14px; --pad:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Noto Sans KR",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:88px}
+  header{position:sticky;top:0;background:var(--bg);padding:18px var(--pad) 10px;z-index:5}
+  header h1{margin:0;font-size:22px;letter-spacing:-0.02em}
+  header p{margin:2px 0 0;color:var(--sub);font-size:13px}
+  main{padding:0 var(--pad)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:var(--pad)}
+  .stack>*+*{margin-top:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:12px;
+    padding:12px 16px;min-height:48px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;width:100%}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .btn.small{min-height:40px;padding:8px 12px;width:auto;font-size:14px}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1}
+  label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px;font-weight:600}
+  input[type=text],input[type=url],input[type=search],textarea{width:100%;border:1px solid var(--line);border-radius:12px;
+    padding:12px;min-height:48px;background:#fff}
+  textarea{min-height:72px;resize:vertical}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+  .chip[aria-pressed=true]{background:var(--accent-weak);border-color:var(--accent);color:var(--accent);font-weight:700}
+  .list{display:grid;gap:10px}
+  .item{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;cursor:pointer}
+  .thumb{width:64px;height:64px;border-radius:10px;background:#eef0f2 center/cover no-repeat;flex:none;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12px}
+  .item h3{margin:0;font-size:15px}
+  .meta{color:var(--sub);font-size:12px}
+  .empty{text-align:center;color:var(--sub);padding:40px 12px}
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+  nav.tabs .inner{display:flex;max-width:480px;width:100%}
+  nav.tabs button{flex:1;border:0;background:none;padding:12px 0 14px;min-height:56px;font-size:13px;color:var(--faint);cursor:pointer}
+  nav.tabs button[aria-current=page]{color:var(--accent);font-weight:700}
+  .pick{text-align:center;padding:24px 16px}
+  .pick .thumb{width:100%;height:200px;border-radius:12px;margin-bottom:14px;font-size:14px}
+  .pick h2{margin:0 0 4px;font-size:20px}
+  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#16181b;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:20}
+  .sheet.open{display:flex}
+  .sheet .panel{background:#fff;width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:20px var(--pad) calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+  .hidden{display:none}
+  a{color:var(--accent)}
+  .src{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;background:#f0f1f3;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 id="title">오늘 뭐 먹지</h1>
+    <p id="subtitle">저장해 둔 레시피 중에서 골라 드려요</p>
+  </header>
+
+  <main>
+    <!-- 오늘 뭐 먹지 -->
+    <section id="view-pick" class="stack"></section>
+
+    <!-- 내 레시피북 -->
+    <section id="view-book" class="stack hidden">
+      <input type="search" id="q" placeholder="레시피 이름, 재료로 찾기" aria-label="레시피 찾기">
+      <div class="chips" id="tagFilter"></div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <!-- 저장하기 -->
+    <section id="view-add" class="stack hidden">
+      <div class="card stack">
+        <div>
+          <label for="f-url">레시피 링크 (인스타그램, 유튜브 등)</label>
+          <input type="url" id="f-url" placeholder="https://" inputmode="url">
+        </div>
+        <div>
+          <label for="f-title">이름</label>
+          <input type="text" id="f-title" placeholder="예: 연어 크림치즈 오픈샌드위치" maxlength="60">
+        </div>
+        <div>
+          <label for="f-photo">사진 (캡처나 음식 사진)</label>
+          <input type="file" id="f-photo" accept="image/*">
+        </div>
+        <div>
+          <label for="f-tags">재료나 태그 (쉼표로 구분)</label>
+          <input type="text" id="f-tags" placeholder="예: 연어, 빵, 10분">
+        </div>
+        <div>
+          <label for="f-memo">메모</label>
+          <textarea id="f-memo" placeholder="양, 바꿔 넣을 재료 등"></textarea>
+        </div>
+        <button class="btn" id="saveBtn">레시피북에 저장</button>
+      </div>
+      <div class="card stack">
+        <div class="meta">데이터는 이 기기 브라우저에만 저장돼요. 기기를 바꿀 땐 백업 파일을 옮겨 주세요.</div>
+        <div class="row">
+          <button class="btn ghost small" id="exportBtn">백업 내보내기</button>
+          <label class="btn ghost small" style="margin:0">백업 불러오기<input type="file" id="importFile" accept="application/json" class="hidden"></label>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="메뉴">
+  <div class="inner">
+    <button data-view="pick" aria-current="page">오늘 뭐 먹지</button>
+    <button data-view="book">내 레시피북</button>
+    <button data-view="add">저장하기</button>
+  </div>
+</nav>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="panel" id="sheetBody"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "recipebook.v1";
+  var UID_KEY = "recipebook.uid";
+
+  // ---------- 저장소 ----------
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function save(list){
+    try { localStorage.setItem(KEY, JSON.stringify(list)); return true; }
+    catch(e){ toast("저장 공간이 부족해요. 사진을 줄이거나 백업 후 정리해 주세요."); return false; }
+  }
+  function uid(){
+    try {
+      var u = localStorage.getItem(UID_KEY);
+      if (!u) { u = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem(UID_KEY, u); }
+      return u;
+    } catch(e){ return "anon"; }
+  }
+  var recipes = load();
+
+  // ---------- 측정 (GA4) ----------
+  function track(name, params){
+    params = params || {};
+    params.recipe_count = recipes.length;
+    try { gtag("event", name, params); } catch(e){}
+    if (window.console) console.log("[track]", name, params);
+  }
+  try { gtag("set", "user_properties", { local_user: uid() }); } catch(e){}
+
+  // ---------- 도우미 ----------
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+  function sourceOf(url){
+    if (!url) return "photo";
+    if (/instagram\.com/.test(url)) return "instagram";
+    if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
+    return "other";
+  }
+  var SRC_LABEL = { instagram:"인스타", youtube:"유튜브", other:"링크", photo:"사진" };
+  function daysSince(ts){ return ts ? Math.floor((Date.now()-ts)/86400000) : null; }
+  function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove("show");},1800); }
+  function shrinkImage(file, cb){
+    var r = new FileReader();
+    r.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var max = 640, w = img.width, h = img.height, k = Math.min(1, max/Math.max(w,h));
+        var c = document.createElement("canvas"); c.width = Math.round(w*k); c.height = Math.round(h*k);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        cb(c.toDataURL("image/jpeg", 0.72));
+      };
+      img.onerror = function(){ cb(null); };
+      img.src = r.result;
+    };
+    r.onerror = function(){ cb(null); };
+    r.readAsDataURL(file);
+  }
+
+  // ---------- 화면 전환 ----------
+  var current = "pick";
+  var TITLES = { pick:["오늘 뭐 먹지","저장해 둔 레시피 중에서 골라 드려요"], book:["내 레시피북","저장한 레시피를 모아 봐요"], add:["레시피 저장","링크나 사진으로 남겨 두세요"] };
+  function show(view){
+    current = view;
+    ["pick","book","add"].forEach(function(v){ $("view-"+v).classList.toggle("hidden", v!==view); });
+    document.querySelectorAll("nav.tabs button").forEach(function(b){
+      if (b.dataset.view===view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
+    });
+    $("title").textContent = TITLES[view][0]; $("subtitle").textContent = TITLES[view][1];
+    if (view==="pick") renderPick();
+    if (view==="book") renderBook();
+    track("screen_view_custom", { screen: view });
+  }
+  document.querySelectorAll("nav.tabs button").forEach(function(b){ b.addEventListener("click", function(){ show(b.dataset.view); }); });
+
+  // ---------- 오늘 뭐 먹지 ----------
+  var skipped = [];
+  function score(r){
+    // 오래 안 해 먹은 것, 덜 해 먹은 것을 먼저
+    var d = daysSince(r.lastCooked); var gap = d==null ? 30 : Math.min(d,30);
+    return gap*2 - (r.cooked||0)*3 + Math.random()*10;
+  }
+  function choose(){
+    var pool = recipes.filter(function(r){ return skipped.indexOf(r.id) < 0; });
+    if (!pool.length) { skipped = []; pool = recipes.slice(); }
+    pool.sort(function(a,b){ return score(b)-score(a); });
+    return pool[0];
+  }
+  var currentPick = null;
+  function renderPick(){
+    var el = $("view-pick");
+    if (!recipes.length){
+      el.innerHTML = '<div class="card empty">아직 저장한 레시피가 없어요.<br>인스타나 유튜브에서 본 레시피를 먼저 저장해 주세요.<div style="margin-top:16px"><button class="btn" id="goAdd">첫 레시피 저장하기</button></div></div>';
+      $("goAdd").onclick = function(){ show("add"); };
+      return;
+    }
+    currentPick = choose();
+    var r = currentPick, d = daysSince(r.lastCooked);
+    el.innerHTML =
+      '<div class="card pick">' +
+        '<div class="thumb" style="'+(r.photo?'background-image:url('+r.photo+')':'')+'">'+(r.photo?'':esc(SRC_LABEL[r.source]))+'</div>' +
+        '<h2>'+esc(r.title)+'</h2>' +
+        '<div class="meta">'+(r.cooked? '해 먹은 횟수 '+r.cooked+'번' : '아직 안 해 먹었어요')+(d!=null? ' · 마지막 '+d+'일 전':'')+'</div>' +
+        (r.tags&&r.tags.length? '<div class="chips" style="justify-content:center;margin-top:10px">'+r.tags.map(function(t){return '<span class="chip">'+esc(t)+'</span>';}).join("")+'</div>' : '') +
+      '</div>' +
+      '<button class="btn" id="acceptBtn">이걸로 할게요</button>' +
+      '<button class="btn ghost" id="skipBtn">다른 거 볼래요</button>';
+    track("recommend_shown", { recipe_id: r.id, source: r.source });
+    $("acceptBtn").onclick = function(){ track("recommend_accepted", { recipe_id: r.id, skips_before: skipped.length }); skipped = []; openDetail(r.id, "recommend"); };
+    $("skipBtn").onclick = function(){ track("recommend_skipped", { recipe_id: r.id }); skipped.push(r.id); renderPick(); };
+  }
+
+  // ---------- 레시피북 ----------
+  var activeTag = null;
+  function renderBook(){
+    var q = $("q").value.trim().toLowerCase();
+    var tags = {};
+    recipes.forEach(function(r){ (r.tags||[]).forEach(function(t){ tags[t]=(tags[t]||0)+1; }); });
+    var tagNames = Object.keys(tags).sort(function(a,b){ return tags[b]-tags[a]; }).slice(0,12);
+    $("tagFilter").innerHTML = tagNames.map(function(t){ return '<button class="chip" aria-pressed="'+(t===activeTag)+'" data-tag="'+esc(t)+'">'+esc(t)+'</button>'; }).join("");
+    $("tagFilter").querySelectorAll("button").forEach(function(b){ b.onclick = function(){ activeTag = activeTag===b.dataset.tag ? null : b.dataset.tag; renderBook(); }; });
+    var rows = recipes.filter(function(r){
+      if (activeTag && (r.tags||[]).indexOf(activeTag)<0) return false;
+      if (!q) return true;
+      return (r.title+" "+(r.tags||[]).join(" ")+" "+(r.memo||"")).toLowerCase().indexOf(q) >= 0;
+    }).sort(function(a,b){ return b.createdAt-a.createdAt; });
+    if (!rows.length){ $("list").innerHTML = '<div class="empty">'+(recipes.length? '찾는 레시피가 없어요.' : '아직 저장한 레시피가 없어요.')+'</div>'; return; }
+    $("list").innerHTML = rows.map(function(r){
+      return '<div class="item" data-id="'+r.id+'"><div class="thumb" style="'+(r.photo?'background-image:url('+r.photo+')':'')+'">'+(r.photo?'':esc(SRC_LABEL[r.source]))+'</div>' +
+        '<div><h3>'+esc(r.title)+'</h3><div class="meta"><span class="src">'+esc(SRC_LABEL[r.source])+'</span> '+(r.cooked? '해 먹음 '+r.cooked+'번':'아직 안 해 먹음')+'</div></div></div>';
+    }).join("");
+    $("list").querySelectorAll(".item").forEach(function(el){ el.onclick = function(){ openDetail(el.dataset.id, "book"); }; });
+  }
+  var searchTimer;
+  $("q").addEventListener("input", function(){ renderBook(); clearTimeout(searchTimer); searchTimer = setTimeout(function(){ if ($("q").value.trim()) track("book_search", {}); }, 1200); });
+
+  // ---------- 상세 ----------
+  function openDetail(id, from){
+    var r = recipes.find(function(x){ return x.id===id; }); if (!r) return;
+    track("recipe_opened", { recipe_id: r.id, from: from, source: r.source });
+    var body = $("sheetBody");
+    body.innerHTML =
+      (r.photo? '<div class="thumb" style="width:100%;height:220px;border-radius:12px;background-image:url('+r.photo+')"></div>' : '') +
+      '<h2 style="margin:14px 0 4px">'+esc(r.title)+'</h2>' +
+      '<div class="meta">'+(r.cooked? '해 먹은 횟수 '+r.cooked+'번':'아직 안 해 먹었어요')+'</div>' +
+      (r.memo? '<p style="white-space:pre-wrap">'+esc(r.memo)+'</p>' : '') +
+      '<div class="stack" style="margin-top:16px">' +
+        (r.url? '<a class="btn ghost" id="openLink" href="'+esc(r.url)+'" target="_blank" rel="noopener">원래 레시피 열기</a>' : '') +
+        '<button class="btn" id="cookedBtn">해 먹었어요</button>' +
+        '<div class="row"><button class="btn ghost small" id="delBtn">삭제</button><button class="btn ghost small" id="closeBtn">닫기</button></div>' +
+      '</div>';
+    $("sheet").classList.add("open");
+    if ($("openLink")) $("openLink").onclick = function(){ track("recipe_link_clicked", { recipe_id: r.id, source: r.source }); };
+    $("cookedBtn").onclick = function(){
+      r.cooked = (r.cooked||0)+1; r.lastCooked = Date.now(); save(recipes);
+      track("cooked_marked", { recipe_id: r.id, from: from, cooked_total: r.cooked });
+      closeSheet(); toast("기록했어요"); if (current==="pick") renderPick(); else renderBook();
+    };
+    $("delBtn").onclick = function(){
+      if (!window.confirm("이 레시피를 삭제할까요?")) return;
+      recipes = recipes.filter(function(x){ return x.id!==r.id; }); save(recipes);
+      track("recipe_deleted", {}); closeSheet(); renderBook(); if (current==="pick") renderPick();
+    };
+    $("closeBtn").onclick = closeSheet;
+  }
+  function closeSheet(){ $("sheet").classList.remove("open"); }
+  $("sheet").addEventListener("click", function(e){ if (e.target.id==="sheet") closeSheet(); });
+
+  // ---------- 저장 ----------
+  var pendingPhoto = null;
+  $("f-photo").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0]; if (!f) { pendingPhoto=null; return; }
+    shrinkImage(f, function(d){ pendingPhoto = d; if (!d) toast("사진을 읽지 못했어요"); });
+  });
+  $("saveBtn").addEventListener("click", function(){
+    var url = $("f-url").value.trim(), title = $("f-title").value.trim();
+    if (!url && !pendingPhoto){ toast("링크나 사진 중 하나는 넣어 주세요"); return; }
+    if (url && !/^https?:\/\//.test(url)) url = "https://" + url;
+    if (!title) title = url ? (SRC_LABEL[sourceOf(url)] + " 레시피") : "사진 레시피";
+    var tags = $("f-tags").value.split(/[,，]/).map(function(s){ return s.trim(); }).filter(Boolean).slice(0,8);
+    var r = { id: "r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title: title, url: url, photo: pendingPhoto, tags: tags,
+              memo: $("f-memo").value.trim(), source: sourceOf(url), cooked: 0, lastCooked: null, createdAt: Date.now() };
+    recipes.push(r);
+    if (!save(recipes)) { recipes.pop(); return; }
+    track("recipe_saved", { source: r.source, has_photo: !!r.photo, tag_count: tags.length });
+    if (recipes.length===3) track("reached_3_recipes", {});
+    ["f-url","f-title","f-tags","f-memo"].forEach(function(i){ $(i).value=""; }); $("f-photo").value=""; pendingPhoto=null;
+    toast("저장했어요"); show("book");
+  });
+
+  // ---------- 백업 ----------
+  $("exportBtn").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify({ v:1, exportedAt: new Date().toISOString(), recipes: recipes })], { type:"application/json" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "recipebook-backup.json"; a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    track("backup_exported", {});
+  });
+  $("importFile").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      try {
+        var data = JSON.parse(rd.result); var incoming = Array.isArray(data) ? data : data.recipes;
+        if (!Array.isArray(incoming)) throw new Error("bad");
+        var ids = {}; recipes.forEach(function(r){ ids[r.id]=1; });
+        var added = incoming.filter(function(r){ return r && r.id && !ids[r.id]; });
+        recipes = recipes.concat(added); save(recipes); toast(added.length+"개를 불러왔어요"); track("backup_imported", { added: added.length });
+        show("book");
+      } catch(err){ toast("백업 파일을 읽지 못했어요"); }
+    };
+    rd.readAsText(f);
+  });
+
+  track("app_open", { returning: recipes.length > 0 });
+  show("pick");
+})();
+</script>
+</body>
+</html>
