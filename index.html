@@ -27,7 +27,14 @@
   window.GA_ID = "G-7R4B2F8XKK";
   window.dataLayer = window.dataLayer || [];
   function gtag(){ dataLayer.push(arguments); }
-  if (/^G-[A-Z0-9]{6,}$/.test(window.GA_ID) && window.GA_ID !== "G-XXXXXXXXXX") {
+  // 서연 본인 기기는 집계에서 빼기: 주소 뒤에 ?me=1 로 한 번 열면 이 기기는 기록 안 함 (?me=0 으로 되돌림)
+  try {
+    var meQ = new URLSearchParams(location.search).get("me");
+    if (meQ === "1") localStorage.setItem("recipebook.flag.me", "1");
+    if (meQ === "0") localStorage.removeItem("recipebook.flag.me");
+    window.IS_ME = localStorage.getItem("recipebook.flag.me") === "1";
+  } catch(e) { window.IS_ME = false; }
+  if (!window.IS_ME && /^G-[A-Z0-9]{6,}$/.test(window.GA_ID) && window.GA_ID !== "G-XXXXXXXXXX") {
     var s = document.createElement("script");
     s.async = true;
     s.src = "https://www.googletagmanager.com/gtag/js?id=" + window.GA_ID;
@@ -293,10 +300,39 @@
       '</div>' +
       '<button class="btn" id="acceptBtn">이걸로 할게요</button>' +
       '<button class="btn ghost" id="skipBtn">다른 거 볼래요</button>';
+    renderCheckin(el);
     if (!flag("feedback") && !fbDismissed && recipes.length >= 3 && daysSince(firstOpen()) >= 2) renderFeedback(el);
     track("recommend_shown", { recipe_id: r.id, source: r.source });
-    $("acceptBtn").onclick = function(){ track("recommend_accepted", { recipe_id: r.id, skips_before: skipped.length }); skipped = []; openDetail(r.id, "recommend"); };
+    $("acceptBtn").onclick = function(){ track("recommend_accepted", { recipe_id: r.id, skips_before: skipped.length }); setFlag("pendingCook", JSON.stringify({ id: r.id, at: Date.now() })); skipped = []; openDetail(r.id, "recommend"); };
     $("skipBtn").onclick = function(){ track("recommend_skipped", { recipe_id: r.id }); skipped.push(r.id); renderPick(); };
+  }
+
+  // ---------- 추천받은 메뉴, 해 먹었는지 다음에 열 때 묻기 ----------
+  function pendingCook(){ try { return JSON.parse(flag("pendingCook")); } catch(e){ return null; } }
+  function clearPending(){ try { localStorage.removeItem("recipebook.flag.pendingCook"); } catch(e){} }
+  function renderCheckin(el){
+    var p = pendingCook(); if (!p) return;
+    var r = recipes.filter(function(x){ return x.id === p.id; })[0];
+    var hours = (Date.now() - p.at) / 36e5;
+    if (!r || hours > 72) { clearPending(); return; }   // 3일 지나면 묻지 않음
+    if (hours < 1) return;                                // 요리할 시간은 주고 묻기
+    var box = document.createElement("div");
+    box.className = "card stack"; box.id = "checkinCard";
+    box.innerHTML = '<div><b>지난번에 고른 \''+esc(r.title)+'\', 해 먹었어요?</b></div>' +
+      '<div style="display:flex;gap:8px"><button class="btn small" type="button" id="ciYes">해 먹었어요</button>' +
+      '<button class="btn ghost small" type="button" id="ciNo">못 했어요</button></div>';
+    el.insertBefore(box, el.firstChild);
+    $("ciYes").onclick = function(){
+      r.cooked = (r.cooked||0)+1; r.lastCooked = Date.now(); save(recipes); clearPending();
+      track("cooked_marked", { recipe_id: r.id, from: "checkin", cooked_total: r.cooked });
+      track("recommend_followup_yes", { recipe_id: r.id, hours_after: Math.round(hours) });
+      box.innerHTML = '<div class="meta" style="text-align:center">기록했어요!</div>';
+    };
+    $("ciNo").onclick = function(){
+      clearPending();
+      track("recommend_followup_no", { recipe_id: r.id, hours_after: Math.round(hours) });
+      box.remove();
+    };
   }
 
   // ---------- 한 번만 묻는 만족도 ----------
@@ -368,7 +404,9 @@
     if ($("openLink")) $("openLink").onclick = function(){ track("recipe_link_clicked", { recipe_id: r.id, source: r.source }); };
     $("cookedBtn").onclick = function(){
       r.cooked = (r.cooked||0)+1; r.lastCooked = Date.now(); save(recipes);
-      track("cooked_marked", { recipe_id: r.id, from: from, cooked_total: r.cooked });
+      var pc = pendingCook(), viaRec = pc && pc.id === r.id;
+      if (viaRec) clearPending();
+      track("cooked_marked", { recipe_id: r.id, from: viaRec && from !== "recommend" ? "recommend_later" : from, cooked_total: r.cooked });
       closeSheet(); toast("기록했어요"); if (current==="pick") renderPick(); else renderBook();
     };
     $("delBtn").onclick = function(){
